@@ -494,6 +494,10 @@ body.win-dragging,body.win-dragging *{cursor:grabbing!important;}
 @keyframes wtblink{0%,100%{background:color-mix(in srgb,var(--accent) 26%,transparent);}50%{background:transparent;}}
 .wtab.attn:not(.active){color:var(--text);background:color-mix(in srgb,var(--accent) 20%,transparent);animation:wtblink .5s ease-in-out 3;}
 .wtab.attn:not(.active) .wt-dot{box-shadow:0 0 5px var(--accent);}
+/* agent "waiting on you" — amber, keeps a slow pulse so the queue stays glanceable (distinct from the blue attn flash) */
+@keyframes wtwait{0%,100%{background:color-mix(in srgb,#e6a23c 30%,transparent);}50%{background:color-mix(in srgb,#e6a23c 8%,transparent);}}
+.wtab.waiting:not(.active){color:var(--text);animation:wtwait 1.4s ease-in-out infinite;}
+.wtab.waiting:not(.active) .wt-dot{background:#e6a23c;box-shadow:0 0 6px #e6a23c;}
 .wtab .wt-dot{width:5px;height:5px;border-radius:50%;flex:0 0 auto;background:var(--muted);}
 .wtab .wt-dot.live{background:var(--live);}
 .wtab .wt-dot.demo{background:var(--demo);}
@@ -580,6 +584,9 @@ body.win-dragging,body.win-dragging *{cursor:grabbing!important;}
 @keyframes chipblink{0%,100%{background:var(--chip-active);border-color:var(--accent);}50%{background:var(--chip-bg);border-color:var(--line);}}
 .chip.attn{border-color:var(--accent);background:var(--chip-active);animation:chipblink .5s ease-in-out 3;}
 .chip.attn .cled{box-shadow:0 0 6px var(--accent);}
+@keyframes chipwait{0%,100%{border-color:#e6a23c;}50%{border-color:color-mix(in srgb,#e6a23c 30%,var(--line));}}
+.chip.waiting{animation:chipwait 1.4s ease-in-out infinite;}
+.chip.waiting .cled{background:#e6a23c;box-shadow:0 0 6px #e6a23c;}
 .chip.mini{opacity:.55;}
 .chip .cled{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:0 0 auto;}
 .chip .cled.live{background:var(--live);box-shadow:0 0 5px var(--live);}
@@ -1130,6 +1137,40 @@ async function editSshHost(h){
 function deleteSshHost(id){sshHosts=sshHosts.filter((x)=>x.id!==id);saveSshHosts();}
 function connectSsh(h){createSession({cwd:curCwd()||"~",cmd:"ssh "+h.target,name:h.label});}
 
+// ── AI CLI presets: one-click launch of an AI coding CLI in a fresh terminal. ──
+// Spawns via the same command-on-start path as SSH (createSession {cmd}), so on agent
+// exit you drop back to the local shell. Tabs launched here are tagged `agent:true`, which
+// arms the "waiting on you" idle watch (openTabWS) — normal shells are never watched, so
+// there are no false positives. Built-ins are fixed; user presets live in localStorage.
+const AICLI_BUILTIN=[
+  {id:"claude",  label:"Claude Code", cmd:"claude"},
+  {id:"codex",   label:"Codex",       cmd:"codex"},
+  {id:"gemini",  label:"Gemini",      cmd:"gemini"},
+  {id:"copilot", label:"Copilot",     cmd:"copilot"},
+];
+const AICLI_STORE="td.aicli.v1";
+let aiClis=(()=>{try{return JSON.parse(localStorage.getItem(AICLI_STORE)||"[]");}catch{return [];}})();
+function saveAiClis(){try{localStorage.setItem(AICLI_STORE,JSON.stringify(aiClis));}catch{}}
+async function addAiCli(){
+  const v=await inputModal("New AI CLI preset",[
+    {key:"label",label:"Name",placeholder:"e.g. Claude (staging)"},
+    {key:"cmd",label:"Command",placeholder:"claude --model opus"},
+  ]);
+  if(!v||!v.cmd)return;
+  aiClis.push({id:newId("ai"),label:v.label||v.cmd,cmd:v.cmd}); saveAiClis();
+  toast("🤖","AI CLI preset saved",v.label||v.cmd,2200);
+}
+async function editAiCli(p){
+  const v=await inputModal("Edit AI CLI preset",[
+    {key:"label",label:"Name",value:p.label},
+    {key:"cmd",label:"Command",value:p.cmd},
+  ]);
+  if(!v||!v.cmd)return;
+  p.label=v.label||v.cmd; p.cmd=v.cmd; saveAiClis();
+}
+function deleteAiCli(id){aiClis=aiClis.filter((x)=>x.id!==id);saveAiClis();}
+function launchAiCli(p){createSession({cwd:curCwd()||"~",cmd:p.cmd,name:p.label,agent:true});}
+
 // ── Scrollback: lines of history each terminal keeps. Global default, applied to new terminals at
 // creation and live to open ones. Big = long logs survive; small = less RAM across many terminals. ──
 const SCROLLBACK_STORE="td.scrollback.v1", SCROLLBACK_DEFAULT=8000;
@@ -1424,7 +1465,7 @@ function createSession(desc, isLog){
 
   // spawn tabs — restore saved ones (names + cwd), else one fresh tab
   if(desc.tabs?.length) desc.tabs.forEach((t)=>addTab(s,{name:t.name,cwd:t.cwd}));
-  else addTab(s,{cmd:desc.cmd});   // desc.cmd = one-shot startup command (Dir popover / SSH); not persisted, so it won't re-fire on reload
+  else addTab(s,{cmd:desc.cmd,agent:desc.agent});   // desc.cmd = one-shot startup command (Dir popover / SSH / AI CLI); not persisted, so it won't re-fire on reload. agent=arm idle "waiting" watch.
 
   if(desc.minimized) minimize(s);
   updateProjCounts(); scheduleSave();
@@ -1525,7 +1566,7 @@ function addTab(s, opts){
   const tab={id:tid,pane,term,fit,search,ser,wt,wtDot,wtName,name:wtName.textContent,
     conn:null,status:"pending",exited:false,closedByUser:false,
     reconnecting:false,retries:0,reconnectTimer:null,
-    cwd:opts.cwd||s.cwd||"",shellName:"",cmd:opts.cmd||""};
+    cwd:opts.cwd||s.cwd||"",shellName:"",cmd:opts.cmd||"",agent:!!opts.agent,waiting:false};
   s.tabs.push(tab);
 
   wt.addEventListener("click",(e)=>{if(e.target===wtX||wtName.isContentEditable)return; switchTab(s,tid);});
@@ -1605,7 +1646,9 @@ function markAttn(s,tab){
   s.chip.classList.remove("attn"); void s.chip.offsetWidth; s.chip.classList.add("attn");
 }
 function clearTabAttn(s,tab){
-  if(!tab||!tab.attn)return;
+  if(!tab)return;
+  if(tab.waiting) setWaiting(s,tab,false);   // viewing the tab clears its "waiting" queue mark
+  if(!tab.attn)return;
   tab.attn=false; tab.wt.classList.remove("attn");
   if(!s.tabs.some((t)=>t.attn)) s.chip.classList.remove("attn");
 }
@@ -1641,7 +1684,7 @@ function closeTab(s,tid){
   const idx=s.tabs.findIndex((t)=>t.id===tid);
   const tab=s.tabs[idx];
   if(findTarget===tab) closeFind();
-  tab.closedByUser=true; clearTimeout(tab.reconnectTimer);
+  tab.closedByUser=true; clearTimeout(tab.reconnectTimer); stopAgentIdle(s,tab);
   if(tab.conn){if(tab.conn.kill)tab.conn.kill(); if(tab.conn.close)tab.conn.close();}
   try{tab.term.dispose();}catch{}
   tab.wt.remove(); tab.pane.remove();
@@ -1680,6 +1723,36 @@ function maybeNudge(s,tab){
 function fmtDur(ms){const s=Math.round(ms/1000);return s<60?s+"s":Math.floor(s/60)+"m"+String(s%60).padStart(2,"0")+"s";}
 // Collapse the home dir to ~ for the cwd badge (Linux /home/<user>, macOS /Users/<user>).
 function tildePath(p){return (p||"~").replace(/^\/(?:home|Users)\/[^/]+/,"~");}
+
+// ── Agent "waiting on you" watch (agent tabs only) ──────────────────────────
+// An AI CLI streams output while working, then goes quiet when it wants input. So:
+// output stops for AGENT_IDLE_MS on an unwatched agent tab → notify once. New output
+// re-arms the timer and ends the waiting state (agent resumed). Only agent-tagged tabs
+// are watched, so normal shells never trip it. Heuristic by design — the point is a
+// glanceable "who needs me" queue, not perfect turn detection.
+const AGENT_IDLE_MS=8000;
+const agentIdle=new Map();   // s.id+tab.id -> {timer, notified}
+function armAgentIdle(s,tab){
+  const k=s.id+tab.id, cur=agentIdle.get(k); if(cur)clearTimeout(cur.timer);
+  if(tab.waiting) setWaiting(s,tab,false);   // fresh output = agent is working again
+  agentIdle.set(k,{notified:false,timer:setTimeout(()=>agentWaiting(s,tab),AGENT_IDLE_MS)});
+}
+function stopAgentIdle(s,tab){const k=s.id+tab.id,cur=agentIdle.get(k);if(cur){clearTimeout(cur.timer);agentIdle.delete(k);}}
+function agentWaiting(s,tab){
+  const cur=agentIdle.get(s.id+tab.id); if(!cur||cur.notified)return;
+  if(tab.exited||tab.status!=="live")return;
+  cur.notified=true;
+  const watching=focusedId===s.id&&s.activeTabId===tab.id&&!s.minimized&&s.project===activeProject&&document.hasFocus();
+  setWaiting(s,tab,true);          // dock/tab pulse marks the queue even while you watch
+  if(watching)return;              // looking right at it → the pulse is enough, skip the toast
+  toast("🤖","Waiting on you","\""+s.name+"\" is waiting for input",6000,()=>{revealWindow(s);switchTab(s,tab.id);});
+}
+function setWaiting(s,tab,on){
+  if(tab.waiting===on)return;
+  tab.waiting=on;
+  tab.wt.classList.toggle("waiting",on);
+  s.chip.classList.toggle("waiting",s.tabs.some((t)=>t.waiting));   // chip lit while ANY tab waits
+}
 function openTabWS(s,tab){
   const proto=location.protocol==="https:"?"wss":"ws";
   const p=new URLSearchParams({id:s.id+"-"+tab.id, cols:tab.term.cols||80, rows:tab.term.rows||24});
@@ -1699,6 +1772,7 @@ function openTabWS(s,tab){
       if(m.shell){tab.shellName=m.shell; if(s.activeTabId===tab.id) s.badgeShell.textContent=m.shell;}
     }else if(m.type==="output"){
       tab.term.write(m.data);
+      if(tab.agent) armAgentIdle(s,tab);   // agent produced output → (re)arm the idle "waiting" watch
       // "command finished" heuristic: OSC 133;D (shell integration, reliable if configured),
       // a bell, or the prompt returning \u2014 trailing $ # % > covers bash/zsh/fish/PowerShell.
       const key=s.id+tab.id;
@@ -1788,7 +1862,7 @@ function closeSession(s,skipCount){
   s.closedByUser=true; clearInterval(s.uptimeTick);
   s.tabs.forEach((tab)=>{
     if(findTarget===tab) closeFind();
-    tab.closedByUser=true; clearTimeout(tab.reconnectTimer);
+    tab.closedByUser=true; clearTimeout(tab.reconnectTimer); stopAgentIdle(s,tab);
     if(tab.conn){if(tab.conn.kill)tab.conn.kill(); if(tab.conn.close)tab.conn.close();}
     try{tab.term.dispose();}catch{}
   });
@@ -2127,6 +2201,7 @@ const PAL_CMDS=[
   {icon:ICON.folder,label:"Open directory\u2026",sub:"Spawn shell in a specific folder",kbd:"\u2318\u21e7O",run:()=>{closePalette();document.getElementById("folder").click();}},
   {icon:ICON.snippet,label:"Save snippet\u2026",sub:"Store a reusable command",kbd:"\u2318\u2325S",run:()=>{closePalette();addSnippet();}},
   {icon:ICON.terminal,label:"Add SSH host\u2026",sub:"Save an ssh target \u2014 connect in one click from here",run:()=>{closePalette();addSshHost();}},
+  {icon:ICON.terminal,label:"Add AI CLI preset\u2026",sub:"Save an agent command \u2014 launch it in one click; pings you when it needs input",run:()=>{closePalette();addAiCli();}},
   {icon:ICON.log,label:"Set scrollback\u2026",sub:"Lines of history each terminal keeps",run:()=>{closePalette();setScrollback();}},
   {icon:ICON.gamepad,label:"Play game",sub:"Dino or Snake while a command runs \u2014 pings when the watched terminal finishes",kbd:"\u2318\u2325G",run:()=>{closePalette();openGame();}},
   {icon:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><ellipse cx="6.5" cy="10" rx="1.7" ry="2.3"/><ellipse cx="10.5" cy="7.5" rx="1.8" ry="2.5"/><ellipse cx="15" cy="8" rx="1.8" ry="2.5"/><ellipse cx="18" cy="11" rx="1.7" ry="2.3"/><path d="M12 12.5c-2.6 0-4.7 1.9-4.7 3.9 0 1.7 1.6 2.6 4.7 2.6s4.7-.9 4.7-2.6c0-2-2.1-3.9-4.7-3.9z"/></svg>',label:"Toggle pixel pets",sub:"Cycle: auto (idle/away) → always on → off",kbd:"⌘⌥P",run:()=>togglePets()},
@@ -2190,6 +2265,29 @@ function buildPalette(q){
       del.addEventListener("click",(e)=>{e.stopPropagation();deleteSshHost(h.id);palMatches=buildPalette(palInput.value);});
       item.append(ic,body,edit,del);
       item.addEventListener("click",()=>{closePalette();connectSsh(h);});
+      palList.append(item);all.push(item);
+    });
+  }
+  // ai clis (built-ins + user presets) — one-click agent launch
+  const ai=[...AICLI_BUILTIN,...aiClis].filter((p)=>!q||p.label.toLowerCase().includes(q)||p.cmd.toLowerCase().includes(q));
+  if(ai.length){
+    const g=el("div","pal-group");g.textContent="AI CLI";palList.append(g);
+    ai.forEach((p)=>{
+      const custom=!AICLI_BUILTIN.includes(p);
+      const item=el("div","pal-item");
+      const ic=el("div","pi-icon");ic.textContent="🤖";
+      const body=el("div","pi-body");
+      const lb=el("div","pi-label");lb.innerHTML=q?hlMatch(p.label,q):p.label;
+      const sb=el("div","pi-sub");sb.textContent=p.cmd;
+      body.append(lb,sb);item.append(ic,body);
+      if(custom){   // only user presets are editable/removable; built-ins are fixed
+        const edit=el("button","pi-del pi-edit");edit.innerHTML=ICON_EDIT;edit.title="Edit preset";
+        edit.addEventListener("click",async(e)=>{e.stopPropagation();await editAiCli(p);palMatches=buildPalette(palInput.value);palInput.focus();});
+        const del=el("button","pi-del");del.innerHTML=ICON.x;del.title="Delete preset";
+        del.addEventListener("click",(e)=>{e.stopPropagation();deleteAiCli(p.id);palMatches=buildPalette(palInput.value);});
+        item.append(edit,del);
+      }
+      item.addEventListener("click",()=>{closePalette();launchAiCli(p);});
       palList.append(item);all.push(item);
     });
   }

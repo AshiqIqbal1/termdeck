@@ -110,6 +110,18 @@ Legend: 🖥️ frontend (`public/index.html`) · 🔌 backend (`server.js`)
   run-command-on-start path), so on disconnect you drop back to the local shell rather than losing the
   window. Targets accept full args (`-p 2222 user@host`). Stored per-browser in `localStorage`
   (`td.ssh.v1`), not synced across devices.
+- 🖥️ **AI CLI presets** — one-click launch of an AI coding CLI in a fresh terminal, from the palette's
+  **AI CLI** group. Built-ins: Claude Code, Codex, Gemini, Copilot. Add your own (palette → *Add AI CLI
+  preset…*) — label + command, stored per-browser in `localStorage` (`td.aicli.v1`), with per-row edit ✎
+  / delete 🗑 (built-ins are fixed). Launches via the run-command-on-start path (same as SSH), spawning in
+  the active project root; on agent exit you drop back to the local shell. Tabs launched this way are
+  tagged as *agent* tabs, which arms the waiting watch below.
+- 🔌 **"Waiting on you" agent watch** — an agent tab that streams output and then goes quiet (idle ~8s)
+  flips to a **waiting** state: an amber pulse on its tab + dock chip so the dock reads as a who-needs-me
+  queue, plus a toast + OS notification (naming the session, click to jump) **only when you're not already
+  watching that tab**. New output ends the waiting state (agent resumed); viewing the tab clears it. Armed
+  **only on agent tabs** (launched from an AI CLI preset), so normal shells never trip it — zero false
+  positives. Heuristic by design (idle-timer, CLI-agnostic); no per-CLI parsing.
 - 🖥️ **Broadcast input** — 📢 Cast toolbar toggle / `⌘⌥B`: keystrokes **and inserted snippets** mirror to
   every live shell **in the active project** (not other projects — a cast can't hit shells you can't see).
   Pulsing red state signals ON (destructive — one command hits all of the project's shells).
@@ -125,7 +137,7 @@ Legend: 🖥️ frontend (`public/index.html`) · 🔌 backend (`server.js`)
   A snippet is *typed* into that shell without a trailing newline, so you review before pressing Enter.
   Stored per-browser in `localStorage` (`td.snippets.v1`) — survives reloads, not synced across devices.
   The footer icon is hidden on read-only log terminals.
-- 🖥️ **Command palette** (`⌘K`) — fuzzy search over commands, sessions, and snippets. Command
+- 🖥️ **Command palette** (`⌘K`) — fuzzy search over commands, sessions, snippets, SSH hosts, and AI CLI presets. Command
   rows use monochrome stroke icons throughout — session rows show a filled disc for the active
   project, a hollow ring for other projects.
 - 🖥️ **Search & filter** sessions by window name, tab name, or directory, with a visible "filter is on" indicator (`⌘F` when unfocused).
