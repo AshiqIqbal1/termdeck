@@ -1,11 +1,29 @@
 {
-  "name": "terminal-dashboard",
+  "name": "@kiril6/termdeck",
   "version": "1.1.0",
-  "description": "A floating-window terminal dashboard served on localhost.",
+  "description": "A browser cockpit of floating, draggable terminal windows — each backed by a real shell (PTY) on your machine. Tile, group into projects, theme, reconnect without losing a session.",
   "main": "server.js",
   "bin": {
     "termdeck": "server.js"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "terminal",
+    "pty",
+    "shell",
+    "xterm",
+    "tmux",
+    "dashboard",
+    "web-terminal",
+    "cli",
+    "node-pty",
+    "localhost"
+  ],
   "files": [
     "server.js",
     "install.js",
@@ -30,7 +48,6 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "node-pty": "^1.1.0",
     "ws": "^8.18.0",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0",
@@ -38,5 +55,9 @@
     "xterm-addon-serialize": "^0.11.0",
     "xterm-addon-web-links": "^0.9.0",
     "xterm-addon-webgl": "^0.16.0"
+  },
+  "optionalDependencies": {
+    "node-pty": "^1.1.0",
+    "@homebridge/node-pty-prebuilt-multiarch": "0.14.1"
   }
 }

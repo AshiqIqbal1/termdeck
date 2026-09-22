@@ -50,10 +50,26 @@
   h2{font-size:1.5rem;margin:52px 0 6px;letter-spacing:-.01em}
   .sub{color:var(--mut);margin:0 0 20px}
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;
+    transition:border-color .15s,transform .15s,box-shadow .15s}
+  .card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.4)}
   .card h3{margin:0 0 6px;font-size:1.05rem}
   .card p{margin:0;color:var(--mut);font-size:.92rem}
-  .card .ico{font-size:1.4rem;display:block;margin-bottom:8px}
+  .card .ico{display:block;margin-bottom:10px}
+  .card .ico svg{width:26px;height:26px;stroke:var(--accent);fill:none;
+    stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .compare{display:grid;grid-template-columns:1fr auto auto;gap:0;margin:20px 0 8px;
+    border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
+  .compare div{padding:12px 16px;border-bottom:1px solid var(--line);font-size:.92rem}
+  .compare .h{color:var(--mut);font-weight:600;font-family:var(--mono);font-size:.82rem;
+    text-align:center;background:#010409}
+  .compare .h:first-child{text-align:left}
+  .compare > div:nth-last-child(-n+3){border-bottom:none}
+  .compare .feat{color:var(--ink)}
+  .compare .mark{text-align:center;font-weight:700}
+  .compare .yes{color:var(--green)}
+  .compare .no{color:#ff6b6b}
+  .compare .them{color:var(--mut)}
   pre{background:#010409;border:1px solid var(--line);border-radius:12px;padding:18px;overflow:auto;
     font-family:var(--mono);font-size:.9rem;color:var(--ink)}
   pre .c{color:var(--mut)}
@@ -62,14 +78,92 @@
     border-radius:8px;padding:14px 16px;color:var(--mut);font-size:.92rem;margin-top:18px}
   footer{border-top:1px solid var(--line);margin-top:64px;padding:28px 0 56px;color:var(--mut);
     text-align:center;font-size:.9rem}
+  /* sticky nav */
+  .nav{position:sticky;top:0;z-index:50;background:rgba(13,17,23,.82);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav .inner{max-width:960px;margin:0 auto;padding:11px 20px;display:flex;align-items:center;gap:22px}
+  .nav .logo{font-family:var(--mono);font-weight:700;color:var(--ink);letter-spacing:.02em}
+  .nav .logo b{color:var(--accent)}
+  .nav .links{display:flex;gap:18px}
+  .nav .links a{color:var(--mut);font-size:.88rem;font-family:var(--mono)}
+  .nav .links a:hover{color:var(--ink);text-decoration:none}
+  .nav .right{margin-left:auto;display:flex;gap:10px;align-items:center}
+  .nav .ghost{border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    border-radius:8px;padding:7px 13px;font-size:.85rem;font-weight:600;display:inline-flex;gap:6px;align-items:center}
+  .nav .ghost:hover{border-color:var(--accent);text-decoration:none}
+  .nav .solid{background:linear-gradient(135deg,var(--accent),#7c5cff);color:#0d1117;border:1px solid transparent;
+    border-radius:8px;padding:7px 15px;font-size:.85rem;font-weight:700;transition:filter .15s,transform .15s}
+  .nav .solid:hover{filter:brightness(1.1);transform:translateY(-1px);text-decoration:none}
+  @media(max-width:640px){.nav .links{display:none}}
+  /* two-tone headline */
+  h1 .hl{color:var(--accent);font-style:italic}
+  /* copy box */
+  .copybox{display:flex;align-items:center;gap:10px;background:#010409;border:1px solid var(--line);
+    border-radius:10px;padding:11px 12px 11px 15px;font-family:var(--mono);font-size:.9rem;text-align:left}
+  .copybox code{flex:1;color:var(--ink);white-space:nowrap;overflow-x:auto;background:none}
+  .copybox code::before{content:"$ ";color:var(--green)}
+  .copybtn{cursor:pointer;flex-shrink:0;border:1px solid var(--line);background:var(--panel);color:var(--mut);
+    border-radius:6px;padding:5px 10px;font-size:.78rem;font-family:var(--sans);font-weight:600;transition:.15s}
+  .copybtn:hover{color:var(--ink);border-color:var(--accent)}
+  .copybtn.ok{color:var(--green);border-color:var(--green)}
+  .hero-copy{max-width:460px;margin:26px auto 0}
+  /* numbered steps */
+  .steps{margin:20px 0 8px}
+  .step{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;margin-bottom:20px}
+  .step .n{font-family:var(--mono);font-weight:700;font-size:1.2rem;color:var(--accent);
+    width:34px;height:34px;border:1px solid var(--line);border-radius:8px;
+    display:flex;align-items:center;justify-content:center;background:var(--panel)}
+  .step .label{color:var(--ink);margin:4px 0 10px;font-size:.98rem}
+  .step .label .c{color:var(--mut);font-size:.88rem}
+  /* kicker pills */
+  .kick{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:.72rem;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--accent);background:var(--panel);
+    border:1px solid var(--line);border-radius:999px;padding:5px 13px;margin:56px 0 0}
+  .kick::before{content:"▸";color:var(--accent2)}
+  .kick + h2{margin-top:12px}
+  /* gradient card top-edge */
+  .card{position:relative;overflow:hidden}
+  .card::before{content:"";position:absolute;inset:0 0 auto 0;height:2px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));opacity:.65;transition:opacity .15s}
+  .card:hover::before{opacity:1}
+  /* integration chips */
+  .chips-label{text-align:center;color:var(--mut);font-family:var(--mono);font-size:.74rem;
+    letter-spacing:.12em;text-transform:uppercase;margin:48px 0 12px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .chip{font-family:var(--mono);font-size:.8rem;color:var(--mut);background:var(--panel);
+    border:1px solid var(--line);border-radius:999px;padding:6px 13px}
+  .chip b{color:var(--ink);font-weight:600}
+  /* more-features scannable grid */
+  .more{columns:3 210px;column-gap:26px;margin:18px 0 6px}
+  .more .it{break-inside:avoid;margin:0 0 15px;padding-left:14px;position:relative}
+  .more .it::before{content:"▹";position:absolute;left:0;top:0;color:var(--accent2);font-size:.85rem}
+  .more .it b{display:block;color:var(--ink);font-size:.94rem;font-weight:600}
+  .more .it span{color:var(--mut);font-size:.85rem}
+  .morelink{display:flex;width:fit-content;align-items:center;gap:6px;margin-top:8px;font-family:var(--mono);
+    font-size:.9rem;color:var(--accent2)}
 </style>
 <script data-goatcounter="https://termdeck.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
+<nav class="nav">
+  <div class="inner">
+    <span class="logo">~/ term<b>deck</b></span>
+    <div class="links">
+      <a href="#why">Why</a>
+      <a href="#features">Features</a>
+      <a href="#start">Quick start</a>
+    </div>
+    <div class="right">
+      <a class="ghost" href="https://github.com/kiril6/termdeck">★ Star</a>
+      <a class="solid" href="#start">Install</a>
+    </div>
+  </div>
+</nav>
 <div class="wrap">
   <header>
     <div class="badges">
+      <a href="https://github.com/kiril6/termdeck/stargazers"><img src="https://img.shields.io/github/stars/kiril6/termdeck?style=flat&label=stars&color=bd93f9" alt="GitHub stars"></a>
       <a href="https://github.com/kiril6/termdeck/releases/latest"><img src="https://img.shields.io/github/v/release/kiril6/termdeck?label=release" alt="Latest release"></a>
       <img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT">
       <img src="https://img.shields.io/badge/node-%E2%89%A518-brightgreen" alt="Node ≥18">
@@ -77,14 +171,18 @@
       <img src="https://img.shields.io/badge/build-none-lightgrey" alt="No build step">
     </div>
     <div class="tag">~/ terminal-dashboard</div>
-    <h1>Every shell, one screen.</h1>
+    <h1>Every shell, <span class="hl">one screen.</span></h1>
     <p class="lead">A browser cockpit of floating, draggable terminal windows — each backed by a
       <strong>real shell (PTY)</strong> on your machine. Tile them, group them into projects,
       theme them, and reconnect without losing a session.</p>
     <div class="cta">
       <a class="btn primary" href="app/?demo">▶ Try the demo</a>
       <a class="btn" href="https://github.com/kiril6/termdeck">★ View on GitHub</a>
-      <a class="btn" href="https://github.com/kiril6/termdeck#quick-start">Quick start</a>
+      <a class="btn" href="#start">Quick start</a>
+    </div>
+    <div class="copybox hero-copy">
+      <code>npx github:kiril6/termdeck</code>
+      <button class="copybtn" data-copy="npx github:kiril6/termdeck">Copy</button>
     </div>
     <p class="note">Runs entirely on <code>localhost</code>. Your shells never leave your machine.<br>
       <span style="opacity:.8">The demo is the real UI with no backend — click around, but shells won't run. Install to get live shells.</span></p>
@@ -95,32 +193,93 @@
     <figcaption>Floating shells → tile into a grid → theme picker → filesystem tree → palette (⌘K) → play a game while a command runs.</figcaption>
   </figure>
 
-  <h2>Why not just tmux or iTerm?</h2>
+  <div class="chips-label">Works with what you already have</div>
+  <div class="chips">
+    <span class="chip"><b>zsh</b></span>
+    <span class="chip"><b>bash</b></span>
+    <span class="chip"><b>PowerShell</b></span>
+    <span class="chip"><b>tmux</b> durable sessions</span>
+    <span class="chip"><b>xterm.js</b> GPU render</span>
+    <span class="chip"><b>Node</b> ≥18</span>
+    <span class="chip">fully offline</span>
+  </div>
+
+  <span class="kick">Why termdeck</span>
+  <h2 id="why">Why not just tmux or iTerm?</h2>
   <p class="sub">You get tmux's session persistence <em>plus</em> a point-and-click GUI you don't
     have to learn — floating windows, projects, and themes in the browser you already have open,
     on macOS, Windows, and Linux alike.</p>
 
-  <div class="grid">
-    <div class="card"><span class="ico">🪟</span><h3>Floating windows</h3><p>Drag, resize, tile into a grid, tabs per pane. Group windows into project tabs and switch context instantly.</p></div>
-    <div class="card"><span class="ico">🔌</span><h3>Session reattach</h3><p>Refresh the browser or drop your connection — the shell keeps running. A 60s grace timer holds the PTY and replays the buffer.</p></div>
-    <div class="card"><span class="ico">🧷</span><h3>Durable with tmux</h3><p>With tmux installed, shells survive a server restart or crash — not just a browser refresh.</p></div>
-    <div class="card"><span class="ico">🗂️</span><h3>Real filesystem tree</h3><p>A live sidebar rooted at the active project. Open a shell in any folder; reveal files in Finder/Explorer.</p></div>
-    <div class="card"><span class="ico">⌘</span><h3>Command palette</h3><p><code>⌘K</code> for fuzzy actions, sessions, and reusable snippets. Broadcast input to every shell in a project.</p></div>
-    <div class="card"><span class="ico">🎨</span><h3>Themes &amp; polish</h3><p>Dracula, Nord, Gruvbox, Tokyo Night, Catppuccin and more. GPU rendering, font zoom, clickable links, pixel pets.</p></div>
+  <div class="compare">
+    <div class="h">&nbsp;</div><div class="h">tmux / iTerm</div><div class="h">Terminal Dashboard</div>
+    <div class="feat">Point-and-click GUI, nothing to learn</div><div class="mark them">—</div><div class="mark yes">✓</div>
+    <div class="feat">Floating, draggable, tileable windows</div><div class="mark them">partial</div><div class="mark yes">✓</div>
+    <div class="feat">Session survives disconnect / restart</div><div class="mark yes">✓</div><div class="mark yes">✓</div>
+    <div class="feat">Projects, themes, command palette built in</div><div class="mark no">✗</div><div class="mark yes">✓</div>
+    <div class="feat">Same UI on macOS · Windows · Linux</div><div class="mark them">varies</div><div class="mark yes">✓</div>
   </div>
 
-  <h2>Quick start</h2>
+  <span class="kick">Features</span>
+  <h2 id="features">Everything, one screen.</h2>
+  <p class="sub">Six things you'd normally wire together by hand — built in.</p>
+  <div class="grid">
+    <div class="card"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="10" rx="1.5"/><rect x="8" y="9" width="13" height="9" rx="1.5"/></svg></span><h3>Floating windows</h3><p>Drag, resize, tile into a grid, tabs per pane. Group windows into project tabs and switch context instantly.</p></div>
+    <div class="card"><span class="ico"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v4h-4"/></svg></span><h3>Session reattach</h3><p>Refresh the browser or drop your connection — the shell keeps running. A 60s grace timer holds the PTY and replays the buffer.</p></div>
+    <div class="card"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><h3>Durable with tmux</h3><p>With tmux installed, shells survive a server restart or crash — not just a browser refresh.</p></div>
+    <div class="card"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h8a1 1 0 0 1 1 1v3"/><rect x="3" y="10" width="10" height="4" rx="1"/><rect x="11" y="17" width="10" height="4" rx="1"/><path d="M8 14v2a1 1 0 0 0 1 1h2"/></svg></span><h3>Real filesystem tree</h3><p>A live sidebar rooted at the active project. Open a shell in any folder; reveal files in Finder/Explorer.</p></div>
+    <div class="card"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3"/><path d="M13 15h4"/></svg></span><h3>Command palette</h3><p><code>⌘K</code> for fuzzy actions, sessions, and reusable snippets. Broadcast input to every shell in a project.</p></div>
+    <div class="card"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.2 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-3.9-4-7-9-7z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="16.5" cy="11.5" r="1"/></svg></span><h3>Themes &amp; polish</h3><p>Dracula, Nord, Gruvbox, Tokyo Night, Catppuccin and more. GPU rendering, font zoom, clickable links, pixel pets.</p></div>
+  </div>
+
+  <span class="kick">And a lot more</span>
+  <h2>Built for how you actually work.</h2>
+  <p class="sub">A highlight reel — especially if you drive AI coding agents all day.</p>
+  <div class="more">
+    <div class="it"><b>AI CLI presets</b><span>One-click Claude Code, Codex, Gemini, Copilot — or add your own.</span></div>
+    <div class="it"><b>"Waiting on you" watch</b><span>An agent tab that goes quiet flips to an amber pulse + notification.</span></div>
+    <div class="it"><b>Approval-prompt routing</b><span>Agent blocked on a permission prompt? Red alert, jump straight to it. Never auto-answers.</span></div>
+    <div class="it"><b>Broadcast input</b><span>Mirror keystrokes and snippets to every shell in a project.</span></div>
+    <div class="it"><b>SSH hosts</b><span>Save targets, one-click connect; drop back to a local shell on disconnect.</span></div>
+    <div class="it"><b>Command snippets</b><span>Reusable commands from the palette or each terminal's footer.</span></div>
+    <div class="it"><b>Run on start</b><span>Spawn a shell that immediately runs <code>npm run dev</code>, <code>ssh …</code>, anything.</span></div>
+    <div class="it"><b>Live working directory</b><span>Each window's cwd badge follows the shell as it <code>cd</code>s — no shell config.</span></div>
+    <div class="it"><b>In-app file viewer</b><span>Click a file in the tree to read it; reveal in Finder/Explorer.</span></div>
+    <div class="it"><b>Find &amp; save output</b><span>Scrollback search with match counts; download any terminal as a <code>.log</code>.</span></div>
+    <div class="it"><b>24 themes</b><span>17 dark + 7 light, per-terminal or dashboard-wide, searchable.</span></div>
+    <div class="it"><b>Mini-game while you wait</b><span>Dino or Snake, auto-armed on long runs; banner when your command finishes.</span></div>
+    <div class="it"><b>Long-run nudge</b><span>Past 20s a "still working…" toast offers the game; done-toast reports duration.</span></div>
+    <div class="it"><b>Desktop notifications</b><span>Command-done alerts when a shell you're not watching returns to its prompt.</span></div>
+    <div class="it"><b>Pixel pets</b><span>Ambient idle-screensaver critters that recolor with your theme.</span></div>
+    <div class="it"><b>Local-first &amp; offline</b><span>Loopback bind, WS Origin/Host validation, xterm served locally — no CDN.</span></div>
+  </div>
+  <a class="morelink" href="https://github.com/kiril6/termdeck/blob/master/FEATURES.md">See the full feature list →</a>
+
+  <span class="kick">Get started</span>
+  <h2 id="start">Quick start</h2>
   <p class="sub">Requires Node.js 18+. No build step, no Electron.</p>
-  <pre><span class="c"># no clone — fetch and run in one command</span>
-npx github:kiril6/termdeck
-
-<span class="c"># …or clone it: first-time setup picks the right node-pty prebuilt for your OS</span>
-node install.js
-<span class="c"># run the server → http://localhost:3000</span>
-npm start
-
-<span class="c"># optional: install tmux first for shells that survive a server restart</span>
-brew install tmux   <span class="c"># macOS · apt/dnf/pacman on Linux</span></pre>
+  <div class="steps">
+    <div class="step">
+      <div class="n">1</div>
+      <div>
+        <div class="label">Fetch and run in one command <span class="c">— no clone needed</span></div>
+        <div class="copybox"><code>npx github:kiril6/termdeck</code><button class="copybtn" data-copy="npx github:kiril6/termdeck">Copy</button></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="n">2</div>
+      <div>
+        <div class="label">Or clone it <span class="c">— setup picks the right node-pty prebuilt for your OS, then serves on localhost:3000</span></div>
+        <div class="copybox"><code>node install.js &amp;&amp; npm start</code><button class="copybtn" data-copy="node install.js && npm start">Copy</button></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="n">3</div>
+      <div>
+        <div class="label">Optional: install tmux first <span class="c">— shells then survive a server restart, not just a browser refresh</span></div>
+        <div class="copybox"><code>brew install tmux</code><button class="copybtn" data-copy="brew install tmux">Copy</button></div>
+      </div>
+    </div>
+  </div>
   <div class="callout">
     <strong>This is a local-first tool, not a static site.</strong> Its core is a Node process that
     spawns real PTYs — so it runs on your machine, not on GitHub Pages. This page is just the
@@ -132,5 +291,15 @@ brew install tmux   <span class="c"># macOS · apt/dnf/pacman on Linux</span></p
       <a href="https://github.com/kiril6/termdeck">source on GitHub</a></p>
   </footer>
 </div>
+<script>
+  document.querySelectorAll('.copybtn').forEach(function(b){
+    b.addEventListener('click', function(){
+      navigator.clipboard.writeText(b.dataset.copy).then(function(){
+        var t = b.textContent; b.textContent = 'Copied'; b.classList.add('ok');
+        setTimeout(function(){ b.textContent = t; b.classList.remove('ok'); }, 1400);
+      }).catch(function(){});
+    });
+  });
+</script>
 </body>
 </html>
