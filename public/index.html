@@ -578,6 +578,7 @@ body.win-dragging,body.win-dragging *{cursor:grabbing!important;}
   flex:0 0 auto;padding-right:8px;}
 .chip{flex:0 0 auto;display:flex;align-items:center;gap:7px;height:36px;padding:0 8px 0 10px;
   background:var(--chip-bg);border:1px solid var(--line);border-radius:7px;cursor:pointer;
+  touch-action:none;user-select:none;
   font-size:12px;color:var(--text);transition:border-color .15s,background .15s,opacity .15s;}
 .chip:hover{border-color:var(--accent-dim);}
 .chip.active{border-color:var(--accent-dim);background:var(--chip-active);}
@@ -593,7 +594,7 @@ body.win-dragging,body.win-dragging *{cursor:grabbing!important;}
 .chip .cled.demo{background:var(--demo);box-shadow:0 0 5px var(--demo);}
 .chip .cled.dead{background:var(--dead);}
 .chip.drag-over{border-color:var(--accent);}
-.chip.dragging{opacity:.3;}
+.chip.dragging{opacity:.3;cursor:grabbing;}
 .chip .cname{max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .chip .cmove{width:18px;height:18px;border:0;border-radius:4px;background:transparent;
   color:var(--muted);cursor:pointer;font-size:11px;display:grid;place-items:center;}
@@ -1430,7 +1431,7 @@ function createSession(desc, isLog){
   const cname=el("span","cname"); cname.textContent=name;
   chip.title="Double-click to hide";
   const cmove=el("button","cmove"); cmove.innerHTML=ICON.moveTo; cmove.title="Move to project\u2026";
-  chip.append(cled,cname,cmove); chip.draggable=true;
+  chip.append(cled,cname,cmove);
   dockTrack.append(chip); updateDockEdges(); updateProjEdges();
 
   // uptime
@@ -2089,14 +2090,65 @@ function applyRect(s,rect,full){
    DOCK
    ════════════════════════════════════════════════ */
 function wireChip(s){
-  s.chip.addEventListener("click",()=>{if(s.minimized)restore(s);else focus(s);});
+  let moved=false;
+  s.chip.addEventListener("click",()=>{if(moved)return;if(s.minimized)restore(s);else focus(s);});
   s.chip.addEventListener("dblclick",()=>{if(!s.minimized)minimize(s);});
-  s.chip.addEventListener("dragstart",(e)=>{s.chip.classList.add("dragging");e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain",s.id);});
-  s.chip.addEventListener("dragend",()=>{s.chip.classList.remove("dragging");dock.querySelectorAll(".chip").forEach((c)=>c.classList.remove("drag-over"));syncOrder();scheduleSave();});
-  s.chip.addEventListener("dragover",(e)=>{e.preventDefault();const dr=dock.querySelector(".chip.dragging");if(!dr||dr===s.chip)return;s.chip.classList.add("drag-over");dockTrack.insertBefore(dr,e.clientX<s.chip.getBoundingClientRect().left+s.chip.getBoundingClientRect().width/2?s.chip:s.chip.nextSibling);});
-  s.chip.addEventListener("dragleave",()=>s.chip.classList.remove("drag-over"));
-  s.chip.addEventListener("drop",(e)=>{e.preventDefault();s.chip.classList.remove("drag-over");});
   s.cmove.addEventListener("click",(e)=>{e.stopPropagation();openMovePop(s,s.cmove);});
+
+  s.chip.addEventListener("pointerdown",(e)=>{
+    if(e.pointerType==="mouse"&&e.button!==0)return;
+    if(e.target.closest(".cmove"))return;
+    moved=false;
+    let dragging=false;
+    const startX=e.clientX, startY=e.clientY;
+
+    const mv=(ev)=>{
+      if(!dragging){
+        if(Math.hypot(ev.clientX-startX,ev.clientY-startY)<4)return;
+        dragging=true;
+        moved=true;
+        s.chip.classList.add("dragging");
+      }
+      const otherChips=[...dockTrack.querySelectorAll(".chip")].filter((c)=>c!==s.chip&&c.style.display!=="none");
+      if(!otherChips.length)return;
+      const firstR=otherChips[0].getBoundingClientRect();
+      const lastR=otherChips[otherChips.length-1].getBoundingClientRect();
+      if(ev.clientX<firstR.left){
+        dock.querySelectorAll(".chip").forEach((c)=>c.classList.remove("drag-over"));
+        dockTrack.insertBefore(s.chip,otherChips[0]);
+      }else if(ev.clientX>lastR.right){
+        dock.querySelectorAll(".chip").forEach((c)=>c.classList.remove("drag-over"));
+        dockTrack.appendChild(s.chip);
+      }else{
+        for(const other of otherChips){
+          const r=other.getBoundingClientRect();
+          if(ev.clientX>=r.left-4&&ev.clientX<=r.right+4){
+            dock.querySelectorAll(".chip").forEach((c)=>c.classList.remove("drag-over"));
+            other.classList.add("drag-over");
+            dockTrack.insertBefore(s.chip,ev.clientX<r.left+r.width/2?other:other.nextSibling);
+            break;
+          }
+        }
+      }
+    };
+
+    const up=()=>{
+      document.removeEventListener("pointermove",mv);
+      document.removeEventListener("pointerup",up);
+      document.removeEventListener("pointercancel",up);
+      if(dragging){
+        s.chip.classList.remove("dragging");
+        dock.querySelectorAll(".chip").forEach((c)=>c.classList.remove("drag-over"));
+        syncOrder();
+        scheduleSave();
+        setTimeout(()=>{moved=false;},50);
+      }
+    };
+
+    document.addEventListener("pointermove",mv);
+    document.addEventListener("pointerup",up);
+    document.addEventListener("pointercancel",up);
+  });
 }
 function syncOrder(){order=[...dock.querySelectorAll(".chip")].map((c)=>{for(const[id,s]of sessions)if(s.chip===c)return id;}).filter(Boolean);}
 // Show edge fades/arrows when chips overflow the visible track.

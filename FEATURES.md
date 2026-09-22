@@ -166,7 +166,7 @@ Legend: 🖥️ frontend (`public/index.html`) · 🔌 backend (`server.js`)
 
 ## Appearance & layout
 - 🖥️ Themes — per-terminal or dashboard-wide, searchable picker (`⌘⇧P`). 24 built-in: 17 dark + 7 light (GitHub Light, Paper, Solarized Light, One Light, Catppuccin Latte, Rose Pine Dawn, Gruvbox Light).
-- 🖥️ Dock — bottom session bar with activity/attention indicators and overflow edge hints.
+- 🖥️ Dock — bottom session bar with activity/attention indicators, overflow edge hints, and pointer-event drag-and-drop reordering (desktop and touch).
 - 🖥️ Tiling (`⌘⌥⇧T`), fullscreen (`F11`).
 - 🖥️ **Responsive toolbar** — below ~1200px the secondary toolbar buttons (Tree, Search, Tile, Cast,
   Dir, Theme, Fullscreen, Help) collapse into a single **⋯** overflow menu; the brand, connection
