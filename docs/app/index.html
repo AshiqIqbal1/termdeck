@@ -1492,8 +1492,8 @@ function createSession(desc, isLog){
   if(!belongsActive){win.style.display="none"; chip.style.display="none";}
   else{hint.style.display="none"; focus(s);}
 
-  // spawn tabs — restore saved ones (names + cwd), else one fresh tab
-  if(desc.tabs?.length) desc.tabs.forEach((t)=>addTab(s,{name:t.name,cwd:t.cwd}));
+  // spawn tabs — restore saved ones (names + cwd + agent tag), else one fresh tab
+  if(desc.tabs?.length) desc.tabs.forEach((t)=>addTab(s,{name:t.name,cwd:t.cwd,agent:t.agent}));
   else addTab(s,{cmd:desc.cmd,agent:desc.agent});   // desc.cmd = one-shot startup command (Dir popover / SSH / AI CLI); not persisted, so it won't re-fire on reload. agent=arm idle "waiting" watch.
 
   if(desc.minimized) minimize(s);
@@ -2768,7 +2768,8 @@ function saveState(){
         return{id:s.id,project:s.project,name:s.name,cwd:s.cwd,themeId:s.themeId||null,isLog:s.isLog||false,
                left:st.left,top:st.top,width:st.width,height:st.height,
                minimized:s.minimized,maximized:s.maximized,prevRect:s.prevRect,
-               tabs:s.tabs.map((t)=>({name:t.name,cwd:t.cwd||""}))};}).filter(Boolean)};
+               // agent tag persists (arms the waiting/approval watch after a reload); cmd deliberately does NOT, so it can't re-fire
+               tabs:s.tabs.map((t)=>({name:t.name,cwd:t.cwd||"",agent:!!t.agent}))};}).filter(Boolean)};
     localStorage.setItem(STORE,JSON.stringify(data));
   }catch{}
 }
