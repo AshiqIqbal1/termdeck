@@ -501,22 +501,52 @@ for (const sig of ['SIGINT', 'SIGTERM']) process.once(sig, () => {
   process.exit(0);
 });
 
-const PORT = process.env.PORT || 3000;
-server.on('error', (e) => {
-  if (e.code === 'EADDRINUSE') { console.error(`\n  Port ${PORT} is already in use. Start on another: \x1b[1mPORT=3001 npm start\x1b[0m\n`); process.exit(1); }
-  throw e;
-});
-maybePromptTmux().finally(() => server.listen(PORT, HOST, () => {
-  const ptyPkg = (() => { for (const p of ptyAttempts) { try { return p+'@'+require(p+'/package.json').version; } catch {} } return '?'; })();
-  const loopback = ['127.0.0.1', 'localhost', '::1'].includes(HOST);
-  console.log(`\n  Terminal Dashboard → http://localhost:${PORT}`);
-  console.log(`  Debug             → http://localhost:${PORT}/debug`);
-  console.log(`  ${os.platform()} ${os.arch()}  |  Node ${process.version}  |  ${ptyPkg}`);
-  console.log(`  Durable sessions  → ${TMUX_OK ? 'tmux (shells survive server restart)' : 'off — raw shells (install tmux, or NO_TMUX unset, to enable)'}`);
-  if (!loopback) console.log(`\n  \x1b[33m⚠ Bound to ${HOST} — shells reachable from the network. Only do this on a trusted LAN.\x1b[0m`);
-  console.log('');
-  openBrowser(`http://localhost:${PORT}`);
-}));
+// Port: default 3000. If it's taken and PORT wasn't explicitly set, walk up to the
+// next free port automatically (npx users often already have 3000 busy) — but if the
+// user pinned PORT, respect it and fail loudly rather than silently moving.
+const portPinned = process.env.PORT != null && process.env.PORT !== '';
+const START_PORT = Number(process.env.PORT) || 3000;
+const MAX_PORT_TRIES = 20;
+function listenOn(port, triesLeft) {
+  let settled = false;
+  // EADDRINUSE surfaces on the WebSocketServer (ws forwards the http server's error to
+  // itself), so listen on BOTH server and wss; `settled` keeps the first one authoritative.
+  const cleanup = () => { server.removeListener('error', onError); wss.removeListener('error', onError); server.removeListener('listening', onListening); };
+  const onError = (e) => {
+    if (settled) return; settled = true; cleanup();
+    if (e.code === 'EADDRINUSE') {
+      if (!portPinned && triesLeft > 0) { console.error(`  \x1b[2mPort ${port} in use — trying ${port + 1}…\x1b[0m`); return listenOn(port + 1, triesLeft - 1); }
+      const hint = portPinned ? `PORT=${port + 1} npm start` : `PORT=8080 npm start`;
+      console.error(`\n  Port ${port} is in use${portPinned ? '' : ' (and no free port found)'}. Start on another: \x1b[1m${hint}\x1b[0m\n`);
+      process.exit(1);
+    }
+    throw e;
+  };
+  const onListening = () => {
+    if (settled) return; settled = true; cleanup();
+    const actual = server.address().port;
+    const ptyPkg = (() => { for (const p of ptyAttempts) { try { return p+'@'+require(p+'/package.json').version; } catch {} } return '?'; })();
+    const loopback = ['127.0.0.1', 'localhost', '::1'].includes(HOST);
+    // We bind 127.0.0.1 (IPv4). Advertise/open that exact host, NOT "localhost" — on macOS
+    // localhost can resolve to ::1 (IPv6) first, so a browser could hit a *different* server
+    // already on IPv6 :3000 (e.g. a Vite dev server) instead of us. 127.0.0.1 is unambiguous.
+    const host = loopback ? '127.0.0.1' : HOST;
+    const base = `http://${host}:${actual}`;
+    console.log(`\n  Terminal Dashboard → ${base}`);
+    console.log(`  Debug             → ${base}/debug`);
+    console.log(`  ${os.platform()} ${os.arch()}  |  Node ${process.version}  |  ${ptyPkg}`);
+    console.log(`  Durable sessions  → ${TMUX_OK ? 'tmux (shells survive server restart)' : 'off — raw shells (install tmux, or NO_TMUX unset, to enable)'}`);
+    if (actual !== START_PORT) console.log(`  \x1b[2m(port ${START_PORT} was busy)\x1b[0m`);
+    if (!loopback) console.log(`\n  \x1b[33m⚠ Bound to ${HOST} — shells reachable from the network. Only do this on a trusted LAN.\x1b[0m`);
+    console.log('');
+    openBrowser(base);
+  };
+  server.once('error', onError);
+  wss.once('error', onError);
+  server.once('listening', onListening);
+  server.listen(port, HOST);
+}
+maybePromptTmux().finally(() => listenOn(START_PORT, portPinned ? 0 : MAX_PORT_TRIES));
 
 // Open the dashboard on start. NO_OPEN=1 skips it. BROWSER=<name|path> picks the browser
 // (e.g. BROWSER="Google Chrome" on macOS, BROWSER=firefox on Linux); default = OS default.
