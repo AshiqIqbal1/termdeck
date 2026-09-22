@@ -124,6 +124,11 @@ Legend: 🖥️ frontend (`public/index.html`) · 🔌 backend (`server.js`)
   watching that tab**. New output ends the waiting state (agent resumed); viewing the tab clears it. Armed
   **only on agent tabs** (launched from an AI CLI preset), so normal shells never trip it — zero false
   positives. Heuristic by design (idle-timer, CLI-agnostic); no per-CLI parsing.
+- ⛔ **Approval-prompt routing** — when an agent tab hits a tool-approval prompt (*"Allow this tool?"*,
+  *"Do you want to proceed?"*, `(y/n)`…), it jumps **straight** to a louder **red** pulse (tab + dock chip)
+  and a **sticky** toast/OS notification ("Needs approval — blocked on a permission prompt") — no 8s idle
+  wait, since an approval halts *all* progress. Stays flagged through prompt repaints until you look at it.
+  **Never auto-answers** — the app only surfaces + jumps, never sends `y`. Cross-CLI regex heuristic.
 - 🖥️ **Broadcast input** — 📢 Cast toolbar toggle / `⌘⌥B`: keystrokes **and inserted snippets** mirror to
   every live shell **in the active project** (not other projects — a cast can't hit shells you can't see).
   Pulsing red state signals ON (destructive — one command hits all of the project's shells).

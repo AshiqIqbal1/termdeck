@@ -498,6 +498,10 @@ body.win-dragging,body.win-dragging *{cursor:grabbing!important;}
 @keyframes wtwait{0%,100%{background:color-mix(in srgb,#e6a23c 30%,transparent);}50%{background:color-mix(in srgb,#e6a23c 8%,transparent);}}
 .wtab.waiting:not(.active){color:var(--text);animation:wtwait 1.4s ease-in-out infinite;}
 .wtab.waiting:not(.active) .wt-dot{background:#e6a23c;box-shadow:0 0 6px #e6a23c;}
+/* blocked on a tool-approval prompt — red, faster pulse: louder than a plain "waiting" because it halts ALL progress */
+@keyframes wtappr{0%,100%{background:color-mix(in srgb,#e5484d 42%,transparent);}50%{background:color-mix(in srgb,#e5484d 10%,transparent);}}
+.wtab.waiting.approval:not(.active){animation:wtappr 0.9s ease-in-out infinite;}
+.wtab.waiting.approval:not(.active) .wt-dot{background:#e5484d;box-shadow:0 0 7px #e5484d;}
 .wtab .wt-dot{width:5px;height:5px;border-radius:50%;flex:0 0 auto;background:var(--muted);}
 .wtab .wt-dot.live{background:var(--live);}
 .wtab .wt-dot.demo{background:var(--demo);}
@@ -587,6 +591,9 @@ body.win-dragging,body.win-dragging *{cursor:grabbing!important;}
 @keyframes chipwait{0%,100%{border-color:#e6a23c;}50%{border-color:color-mix(in srgb,#e6a23c 30%,var(--line));}}
 .chip.waiting{animation:chipwait 1.4s ease-in-out infinite;}
 .chip.waiting .cled{background:#e6a23c;box-shadow:0 0 6px #e6a23c;}
+@keyframes chipappr{0%,100%{border-color:#e5484d;}50%{border-color:color-mix(in srgb,#e5484d 35%,var(--line));}}
+.chip.approval{animation:chipappr 0.9s ease-in-out infinite;}
+.chip.approval .cled{background:#e5484d;box-shadow:0 0 7px #e5484d;}
 .chip.mini{opacity:.55;}
 .chip .cled{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:0 0 auto;}
 .chip .cled.live{background:var(--live);box-shadow:0 0 5px var(--live);}
@@ -1734,7 +1741,7 @@ const AGENT_IDLE_MS=8000;
 const agentIdle=new Map();   // s.id+tab.id -> {timer, notified}
 function armAgentIdle(s,tab){
   const k=s.id+tab.id, cur=agentIdle.get(k); if(cur)clearTimeout(cur.timer);
-  if(tab.waiting) setWaiting(s,tab,false);   // fresh output = agent is working again
+  if(tab.waiting&&!tab.approval) setWaiting(s,tab,false);   // fresh output = working again — but a pending approval stays flagged (repaint ≠ progress) until you look at it
   agentIdle.set(k,{notified:false,timer:setTimeout(()=>agentWaiting(s,tab),AGENT_IDLE_MS)});
 }
 function stopAgentIdle(s,tab){const k=s.id+tab.id,cur=agentIdle.get(k);if(cur){clearTimeout(cur.timer);agentIdle.delete(k);}}
@@ -1743,15 +1750,29 @@ function agentWaiting(s,tab){
   if(tab.exited||tab.status!=="live")return;
   cur.notified=true;
   const watching=focusedId===s.id&&s.activeTabId===tab.id&&!s.minimized&&s.project===activeProject&&document.hasFocus();
-  setWaiting(s,tab,true);          // dock/tab pulse marks the queue even while you watch
+  setWaiting(s,tab,true,tab.approval);   // dock/tab pulse marks the queue even while you watch; preserve a red approval flag, never downgrade it
   if(watching)return;              // looking right at it → the pulse is enough, skip the toast
   toast("🤖","Waiting on you","\""+s.name+"\" is waiting for input",6000,()=>{revealWindow(s);switchTab(s,tab.id);});
 }
-function setWaiting(s,tab,on){
-  if(tab.waiting===on)return;
-  tab.waiting=on;
+// #3 approval-prompt routing: a tool-approval prompt blocks ALL progress, so it fires a
+// louder, STICKY toast (ms=0) distinct from the plain idle "waiting", and flags the tab/chip
+// red at once — no 8s wait. Cheap per-chunk regex across CLIs. NEVER auto-answers: surface + jump only.
+const APPROVAL_RE=/allow this (tool|command|action|edit)|do you want to (proceed|allow|continue|run|make this|create|edit)|approve this|grant (access|permission)|\b(y\s*\/\s*n|yes\s*\/\s*no|\[y\/n\])\b|press\s+y\s+to|❯\s*1\.?\s*yes/i;
+function agentApproval(s,tab){
+  if(tab.approval||tab.exited||tab.status!=="live")return;   // fire only on the transition into "blocked" — repaints of the prompt are ignored
+  setWaiting(s,tab,true,true);
+  const watching=focusedId===s.id&&s.activeTabId===tab.id&&!s.minimized&&s.project===activeProject&&document.hasFocus();
+  if(watching)return;
+  toast("⛔","Needs approval","\""+s.name+"\" is blocked on a permission prompt",0,()=>{revealWindow(s);switchTab(s,tab.id);});
+}
+function setWaiting(s,tab,on,approval){
+  const ap=on&&!!approval;
+  if(tab.waiting===on&&!!tab.approval===ap)return;
+  tab.waiting=on; tab.approval=ap;
   tab.wt.classList.toggle("waiting",on);
+  tab.wt.classList.toggle("approval",ap);
   s.chip.classList.toggle("waiting",s.tabs.some((t)=>t.waiting));   // chip lit while ANY tab waits
+  s.chip.classList.toggle("approval",s.tabs.some((t)=>t.approval)); // red chip while ANY tab is blocked on approval
 }
 function openTabWS(s,tab){
   const proto=location.protocol==="https:"?"wss":"ws";
@@ -1772,7 +1793,7 @@ function openTabWS(s,tab){
       if(m.shell){tab.shellName=m.shell; if(s.activeTabId===tab.id) s.badgeShell.textContent=m.shell;}
     }else if(m.type==="output"){
       tab.term.write(m.data);
-      if(tab.agent) armAgentIdle(s,tab);   // agent produced output → (re)arm the idle "waiting" watch
+      if(tab.agent){ armAgentIdle(s,tab); if(APPROVAL_RE.test(m.data)) agentApproval(s,tab); }   // (re)arm idle watch; a tool-approval prompt jumps straight to the louder red state
       // "command finished" heuristic: OSC 133;D (shell integration, reliable if configured),
       // a bell, or the prompt returning \u2014 trailing $ # % > covers bash/zsh/fish/PowerShell.
       const key=s.id+tab.id;
