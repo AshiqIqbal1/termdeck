@@ -226,7 +226,7 @@ Served over `http://`/`https://` the app is **live** (real shells). Opened direc
 
 ## Contributing
 
-Contributions welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the ground rules (dependency-light backend, no build step, the reattach invariant) and the dev loop. Found a bug? [Open an issue](https://github.com/kiril6/termdeck/issues/new) with your **OS**, **Node version**, and the `/debug` page output if shells fail to start.
+Contributions welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the ground rules (dependency-light backend, no build step, the reattach invariant) and the dev loop. Found a bug or have an idea? [Open an issue](https://github.com/kiril6/termdeck/issues/new/choose) — the guided form walks you through it. New here? The [good first issues](https://github.com/kiril6/termdeck/issues?q=is%3Aopen+label%3A%22good+first+issue%22) are a friendly start.
 
 ---
 
