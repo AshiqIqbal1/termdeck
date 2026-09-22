@@ -416,6 +416,9 @@ html.is-mac .sc-about b.kbd-inline{letter-spacing:.22em;}
 .ptab .pdel{width:16px;height:16px;padding:0;border:0;background:transparent;color:var(--muted);
   border-radius:4px;cursor:pointer;display:grid;place-items:center;font-size:11px;}
 .ptab .pdel:hover{background:#3a1a1c;color:#ff9b93;}
+.ptab .pdot{width:6px;height:6px;border-radius:50%;flex:0 0 auto;display:none;}
+.ptab.waiting .pdot{display:inline-block;background:#e6a23c;box-shadow:0 0 6px #e6a23c;}
+.ptab.approval .pdot{display:inline-block;background:#e5484d;box-shadow:0 0 7px #e5484d;}
 .paddbtn{flex:0 0 auto;width:26px;height:26px;border-radius:6px;
   border:1px dashed var(--line);background:transparent;color:var(--muted);
   cursor:pointer;display:grid;place-items:center;font-size:14px;}
@@ -1302,10 +1305,11 @@ function addProject(name,id,silent){
 }
 function renderProjectTab(p){
   const tab=el("div","ptab"); tab.dataset.id=p.id;
+  const dot=el("span","pdot");
   const nm=el("span","pname"); nm.textContent=p.name; nm.setAttribute("spellcheck","false"); nm.title="Double-click to rename";
   const cnt=el("span","pn"); cnt.textContent="0";
   const del=el("button","pdel"); del.innerHTML=ICON.x; del.title="Delete project";
-  tab.append(nm,cnt,del);
+  tab.append(dot,nm,cnt,del);
   projTrack.append(tab); updateProjEdges();
   tab.addEventListener("click",(e)=>{if(e.target===del||nm.isContentEditable)return; switchProject(p.id);});
   nm.addEventListener("dblclick",(e)=>{e.stopPropagation(); nm.contentEditable="true"; nm.focus(); document.getSelection().selectAllChildren(nm);});
@@ -1313,7 +1317,8 @@ function renderProjectTab(p){
   nm.addEventListener("blur",commit);
   nm.addEventListener("keydown",(e)=>{if(e.key==="Enter"){e.preventDefault();nm.blur();} if(e.key==="Escape"){nm.textContent=p.name;nm.blur();} e.stopPropagation();});
   del.addEventListener("click",(e)=>{e.stopPropagation(); deleteProject(p.id);});
-  p.tab=tab; p.nameEl=nm; p.countEl=cnt;
+  p.tab=tab; p.nameEl=nm; p.countEl=cnt; p.dot=dot;
+  updateProjectAttention(p.id);
 }
 async function deleteProject(pid){
   if(projectOrder.length<=1)return;
@@ -1350,16 +1355,32 @@ function updateProjCounts(){
   sessions.forEach((s)=>c.set(s.project,(c.get(s.project)||0)+1));
   projects.forEach((p)=>{p.countEl.textContent=String(c.get(p.id)||0);});
 }
+function updateProjectAttention(pid){
+  if(!pid){projects.forEach((_,id)=>updateProjectAttention(id)); return;}
+  const p=projects.get(pid); if(!p?.tab)return;
+  let hasWait=false, hasAppr=false;
+  for(const sess of sessions.values()){
+    if(sess.project!==pid)continue;
+    for(const t of sess.tabs){
+      if(t.approval){hasAppr=true; break;}
+      if(t.waiting) hasWait=true;
+    }
+    if(hasAppr) break;
+  }
+  p.tab.classList.toggle("approval",hasAppr);
+  p.tab.classList.toggle("waiting",!hasAppr&&hasWait);
+}
 function moveSessionToProject(s,pid){
   if(!projects.has(pid)||s.project===pid)return;
   if([...sessions.values()].filter((x)=>x.project===pid).length>=MAX_TERMS){toast(ICON.warn,"Limit reached","Max "+MAX_TERMS+" terminals per project"); return;}
+  const oldPid=s.project;
   s.project=pid;
   const b=pid===activeProject;
   s.win.style.display=b&&!s.minimized?"":"none";
   s.chip.style.display=b?"":"none";
   if(b){hint.style.display="none"; focus(s);}
   else if(focusedId===s.id) focusedId=null;
-  updateProjCounts(); scheduleSave();
+  updateProjCounts(); updateProjectAttention(oldPid); updateProjectAttention(pid); scheduleSave();
   toast("📦","Moved","\""+s.name+"\" → "+projects.get(pid).name,4000,
     ()=>{if(s.project!==activeProject)switchProject(s.project);revealWindow(s);});
 }
@@ -1698,7 +1719,10 @@ function closeTab(s,tid){
   tab.wt.remove(); tab.pane.remove();
   s.tabs.splice(idx,1); updTabEdges(s.wtabsTrack);
   if(s.activeTabId===tid){const nxt=s.tabs[Math.min(idx,s.tabs.length-1)]; if(nxt) switchTab(s,nxt.id);}
+  s.chip.classList.toggle("waiting",s.tabs.some((t)=>t.waiting));
+  s.chip.classList.toggle("approval",s.tabs.some((t)=>t.approval));
   updateConn(); // recompute LED/conn + Cast gate after losing a shell
+  updateProjectAttention(s.project);
   scheduleSave();
 }
 
@@ -1774,6 +1798,7 @@ function setWaiting(s,tab,on,approval){
   tab.wt.classList.toggle("approval",ap);
   s.chip.classList.toggle("waiting",s.tabs.some((t)=>t.waiting));   // chip lit while ANY tab waits
   s.chip.classList.toggle("approval",s.tabs.some((t)=>t.approval)); // red chip while ANY tab is blocked on approval
+  updateProjectAttention(s.project);
 }
 function openTabWS(s,tab){
   const proto=location.protocol==="https:"?"wss":"ws";
@@ -1889,10 +1914,11 @@ function closeSession(s,skipCount){
     try{tab.term.dispose();}catch{}
   });
   s.win.remove(); s.chip.remove();
+  const pid=s.project;
   sessions.delete(s.id); order=order.filter((x)=>x!==s.id);
   if(focusedId===s.id) focusedId=null;
   if(s.project===activeProject&&![...sessions.values()].some((x)=>x.project===activeProject))hint.style.display="";
-  updateConn(); updateDockEdges(); updateProjEdges(); if(!skipCount){updateProjCounts(); scheduleSave();}
+  updateConn(); updateDockEdges(); updateProjEdges(); updateProjectAttention(pid); if(!skipCount){updateProjCounts(); scheduleSave();}
 }
 
 /* ════════════════════════════════════════════════
@@ -2754,7 +2780,7 @@ function restoreState(){
   activeProject=projects.has(data.activeProject)?data.activeProject:projectOrder[0];
   projects.forEach((p)=>p.tab.classList.toggle("active",p.id===activeProject));
   if(data.sessions?.length) data.sessions.forEach((d)=>createSession(d));
-  updateProjCounts();
+  updateProjCounts(); updateProjectAttention();
   hint.style.display=[...sessions.values()].some((s)=>s.project===activeProject&&!s.minimized)?"none":"";
   return true;
 }
