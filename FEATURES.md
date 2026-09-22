@@ -129,6 +129,11 @@ Legend: 🖥️ frontend (`public/index.html`) · 🔌 backend (`server.js`)
   and a **sticky** toast/OS notification ("Needs approval — blocked on a permission prompt") — no 8s idle
   wait, since an approval halts *all* progress. Stays flagged through prompt repaints until you look at it.
   **Never auto-answers** — the app only surfaces + jumps, never sends `y`. Cross-CLI regex heuristic.
+- 🖥️ **Project attention dots** — the waiting/approval state also bubbles up to the **project tab** in the
+  sidebar as a small dot, so a project you're not currently viewing still signals a queued agent: **amber**
+  when any of its tabs is waiting, **red** when any is blocked on an approval (red wins). Recomputed as tab
+  state changes, on session close, and when a session moves between projects; cleared when the last flagged
+  tab/session goes away.
 - 🖥️ **Broadcast input** — 📢 Cast toolbar toggle / `⌘⌥B`: keystrokes **and inserted snippets** mirror to
   every live shell **in the active project** (not other projects — a cast can't hit shells you can't see).
   Pulsing red state signals ON (destructive — one command hits all of the project's shells).
