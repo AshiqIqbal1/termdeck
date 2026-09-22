@@ -2,6 +2,9 @@ name: Bug report
 description: Something isn't working
 labels: [bug]
 body:
+  - type: markdown
+    attributes:
+      value: Thanks for the report! Please fill in enough for someone to reproduce it.
   - type: textarea
     id: what
     attributes:
@@ -18,6 +21,34 @@ body:
         1. npm start
         2. Open a terminal in project X
         3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of termdeck does this touch?
+      options:
+        - Terminals / PTY & shells
+        - Windows, tiling & resize
+        - Projects & sidebar
+        - Command palette & search
+        - AI CLI presets & agent watch
+        - tmux / reattach durability
+        - SSH hosts
+        - Snippets
+        - Themes & UI
+        - npx / install / setup
+        - Docs / landing page
+        - Other / not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: termdeck version
+      description: The release tag, or the commit if you run from source.
+      placeholder: v1.1.0
     validations:
       required: true
   - type: input

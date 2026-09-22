@@ -16,6 +16,26 @@ body:
       description: What you'd like to happen. Rough is fine.
     validations:
       required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of termdeck would this touch?
+      options:
+        - Terminals / PTY & shells
+        - Windows, tiling & resize
+        - Projects & sidebar
+        - Command palette & search
+        - AI CLI presets & agent watch
+        - tmux / reattach durability
+        - SSH hosts
+        - Snippets
+        - Themes & UI
+        - npx / install / setup
+        - Docs / landing page
+        - Other / not sure
+    validations:
+      required: true
   - type: textarea
     id: alternatives
     attributes:
