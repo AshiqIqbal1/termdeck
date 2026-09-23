@@ -215,7 +215,9 @@ function gitP(args, cwd) {                                       // execFile (no
       err ? reject(Object.assign(err, { stderr: String(stderr || '') })) : resolve(String(stdout)));
   });
 }
-const gitFail = (e) => (e.stderr || e.message || 'git failed').trim().split('\n')[0];
+const GIT_MISSING = 'git is not installed';
+const gitFail = (e) => e.code === 'ENOENT' ? GIT_MISSING
+  : (e.stderr || e.message || 'git failed').trim().split('\n')[0];
 
 app.get('/api/git/root', apiGuard, async (req, res) => {         // is this dir a repo? → toplevel
   const dir = expandDir(req.query.dir);
@@ -224,7 +226,7 @@ app.get('/api/git/root', apiGuard, async (req, res) => {         // is this dir 
     const root = (await gitP(['rev-parse', '--show-toplevel'], dir)).trim();
     const branch = (await gitP(['rev-parse', '--abbrev-ref', 'HEAD'], dir)).trim();
     res.json({ root, branch });
-  } catch { res.status(404).json({ error: 'not a git repository' }); }
+  } catch (e) { res.status(404).json({ error: e.code === 'ENOENT' ? GIT_MISSING : 'not a git repository' }); }
 });
 
 // POST: creates a sibling worktree `<repo>-worktrees/<branch>` off the repo's current HEAD,

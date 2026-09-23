@@ -1193,16 +1193,19 @@ function launchAiCli(p){createSession({cwd:curCwd()||"~",cmd:p.cmd,name:p.label,
 // Nothing is ever removed automatically — a finished task leaves its worktree and
 // branch on disk for you to merge or delete yourself, in the shell.
 const shQuote=(s)=>"'"+String(s).replace(/'/g,"'\\''")+"'";
-async function gitRootOf(dir){
+async function gitRootOf(dir){   // -> {root} | {error} — the error matters: "git not installed" is not "not a repo"
   try{const r=await fetch("/api/git/root?dir="+encodeURIComponent(dir));
-    return r.ok?(await r.json()).root:null;}catch{return null;}
+    const j=await r.json().catch(()=>({}));
+    return r.ok?{root:j.root}:{error:j.error||("HTTP "+r.status)};}
+  catch(e){return {error:e.message};}
 }
 async function newAgentTask(){
   if(!LIVE){toast(ICON.warn,"Demo mode","Agent worktrees need a backend \u2014 run termdeck locally",5000);return;}
   const dir=projects.get(activeProject)?.root||curCwd()||"";
   if(!dir){toast(ICON.warn,"No project root","Open a terminal in your repo first",4000);return;}
-  const root=await gitRootOf(dir);
-  if(!root){toast(ICON.warn,"Not a git repository",dir,5000);return;}
+  const g=await gitRootOf(dir);
+  if(!g.root){toast(ICON.warn,"Can\u2019t create a worktree",(g.error||"not a git repository")+" \u2014 "+dir,6000);return;}
+  const root=g.root;
   const presets=[...AICLI_BUILTIN,...aiClis];
   const v=await inputModal("New agent task",[
     {key:"branch",label:"Branch name",placeholder:"agent/fix-login"},

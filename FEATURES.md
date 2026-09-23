@@ -130,7 +130,9 @@ Legend: 🖥️ frontend (`public/index.html`) · 🔌 backend (`server.js`)
   metacharacters are passed literally, never executed). Worktrees live in a sibling
   `<repo>-worktrees/<branch>` folder, keeping the repo itself clean. **Nothing is ever removed
   automatically:** a finished task leaves its worktree and branch on disk to merge or delete yourself.
-  Requires the project root to be inside a git repo; a non-repo says so instead of failing silently.
+  Requires the project root to be inside a git repo. Failures name their **real** cause rather than
+  a plausible-sounding wrong one: a non-repo says so, a host without git installed says *that*, and in
+  backend-free demo mode both commands say so — three different messages, never one catch-all.
 - 🖥️ **Review agent changes — read-only diff** (palette → *Review agent changes…*). Reviewing what an
   agent did is the real bottleneck, not launching it. Diffs the project's worktree against the commit it
   was cut from (`GET /api/git/diff`), so **committed and uncommitted work both show in one view**, with a
