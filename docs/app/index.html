@@ -1198,6 +1198,7 @@ async function gitRootOf(dir){
     return r.ok?(await r.json()).root:null;}catch{return null;}
 }
 async function newAgentTask(){
+  if(!LIVE){toast(ICON.warn,"Demo mode","Agent worktrees need a backend \u2014 run termdeck locally",5000);return;}
   const dir=projects.get(activeProject)?.root||curCwd()||"";
   if(!dir){toast(ICON.warn,"No project root","Open a terminal in your repo first",4000);return;}
   const root=await gitRootOf(dir);
@@ -1228,6 +1229,7 @@ async function newAgentTask(){
 // working tree against the base commit, so committed AND uncommitted work both show.
 // No accept/discard here on purpose — you have a real shell in that worktree.
 async function openAgentDiff(){
+  if(!LIVE){toast(ICON.warn,"Demo mode","Diff review needs a backend \u2014 run termdeck locally",5000);return;}
   const p=projects.get(activeProject);
   const dir=p?.root;
   if(!dir){toast(ICON.warn,"No project root","This project isn’t rooted at a folder",4000);return;}
