@@ -83,6 +83,9 @@ Legend: 🖥️ frontend (`public/index.html`) · 🔌 backend (`server.js`)
   (CI / piped / detached), so scripted runs never block.
 - 🔌 **Reattach model:** on WS disconnect the PTY is NOT killed — a 60s grace timer holds it;
   reconnecting with the same `id` replays the last 1 MB of output. Survives browser refresh.
+  The WS id is `<sessionId>-<tabId>`, so **both** ids are persisted with the layout — a reload that
+  minted fresh tab ids would connect under a new id and silently get a *brand new shell* (and, with
+  tmux, leak the old `td_*` session) instead of reattaching.
   `TD_GRACE_MS` and `TD_BUFFER` override those defaults with positive numeric values;
   invalid, zero, and negative values safely fall back to the defaults.
 - 🖥️ **Wake reconnect** — on tab refocus (`visibilitychange`), reconnecting shells retry
@@ -150,6 +153,9 @@ Legend: 🖥️ frontend (`public/index.html`) · 🔌 backend (`server.js`)
   and a **sticky** toast/OS notification ("Needs approval — blocked on a permission prompt") — no 8s idle
   wait, since an approval halts *all* progress. Stays flagged through prompt repaints until you look at it.
   **Never auto-answers** — the app only surfaces + jumps, never sends `y`. Cross-CLI regex heuristic.
+  On **reattach** only the tail of the replayed ring buffer (last 2 KB — the current screen) is scanned:
+  matching the whole buffer would re-fire a red flag for a prompt you already answered earlier in the
+  session. A prompt that is still on screen is still caught; history is not re-litigated.
 - 🖥️ **Project attention dots** — the waiting/approval state also bubbles up to the **project tab** in the
   sidebar as a small dot, so a project you're not currently viewing still signals a queued agent: **amber**
   when any of its tabs is waiting, **red** when any is blocked on an approval (red wins). Recomputed as tab

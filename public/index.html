@@ -1572,7 +1572,7 @@ function createSession(desc, isLog){
   else{hint.style.display="none"; focus(s);}
 
   // spawn tabs — restore saved ones (names + cwd + agent tag), else one fresh tab
-  if(desc.tabs?.length) desc.tabs.forEach((t)=>addTab(s,{name:t.name,cwd:t.cwd,agent:t.agent}));
+  if(desc.tabs?.length) desc.tabs.forEach((t)=>addTab(s,{id:t.id,name:t.name,cwd:t.cwd,agent:t.agent}));
   else addTab(s,{cmd:desc.cmd,agent:desc.agent});   // desc.cmd = one-shot startup command (Dir popover / SSH / AI CLI); not persisted, so it won't re-fire on reload. agent=arm idle "waiting" watch.
 
   if(desc.minimized) minimize(s);
@@ -1639,7 +1639,7 @@ function saveTabOutput(s,tab){
 
 function addTab(s, opts){
   opts=opts||{};
-  const tid=newId("t"+(++tabSeq));
+  const tid=opts.id||newId("t"+(++tabSeq));   // reuse the saved id on restore: the WS id is s.id+"-"+tab.id, so a fresh id here means a fresh shell
   const pane=el("div","win-pane");
   s.panes.append(pane);
 
@@ -1861,6 +1861,7 @@ function agentWaiting(s,tab){
 // #3 approval-prompt routing: a tool-approval prompt blocks ALL progress, so it fires a
 // louder, STICKY toast (ms=0) distinct from the plain idle "waiting", and flags the tab/chip
 // red at once — no 8s wait. Cheap per-chunk regex across CLIs. NEVER auto-answers: surface + jump only.
+const REPLAY_SCAN=2000;   // bytes of a replayed buffer treated as "current screen"
 const APPROVAL_RE=/allow this (tool|command|action|edit)|do you want to (proceed|allow|continue|run|make this|create|edit)|approve this|grant (access|permission)|\b(y\s*\/\s*n|yes\s*\/\s*no|\[y\/n\])\b|press\s+y\s+to|❯\s*1\.?\s*yes/i;
 function agentApproval(s,tab){
   if(tab.approval||tab.exited||tab.status!=="live")return;   // fire only on the transition into "blocked" — repaints of the prompt are ignored
@@ -1893,12 +1894,16 @@ function openTabWS(s,tab){
   ws.onmessage=(ev)=>{
     let m; try{m=JSON.parse(ev.data);}catch{return;}
     if(m.type==="attach"){
-      if(m.resumed) tab.term.reset();
+      if(m.resumed){tab.term.reset(); tab.replay=true;}   // next output chunk is the replayed ring buffer, not live output
       if(m.cwd){tab.cwd=m.cwd; if(s.activeTabId===tab.id) s.badgeCwd.textContent=tildePath(m.cwd);}
       if(m.shell){tab.shellName=m.shell; if(s.activeTabId===tab.id) s.badgeShell.textContent=m.shell;}
     }else if(m.type==="output"){
       tab.term.write(m.data);
-      if(tab.agent){ armAgentIdle(s,tab); if(APPROVAL_RE.test(m.data)) agentApproval(s,tab); }   // (re)arm idle watch; a tool-approval prompt jumps straight to the louder red state
+      // On reattach the server replays the whole ring buffer in one chunk. Scanning all of it
+      // would re-match an approval prompt you ALREADY answered and fire a false red. The tail is
+      // the current screen, so that's the only part that reflects live state.
+      const scan=tab.replay?m.data.slice(-REPLAY_SCAN):m.data; tab.replay=false;
+      if(tab.agent){ armAgentIdle(s,tab); if(APPROVAL_RE.test(scan)) agentApproval(s,tab); }   // (re)arm idle watch; a tool-approval prompt jumps straight to the louder red state
       // "command finished" heuristic: OSC 133;D (shell integration, reliable if configured),
       // a bell, or the prompt returning \u2014 trailing $ # % > covers bash/zsh/fish/PowerShell.
       const key=s.id+tab.id;
@@ -2850,7 +2855,7 @@ function saveState(){
                left:st.left,top:st.top,width:st.width,height:st.height,
                minimized:s.minimized,maximized:s.maximized,prevRect:s.prevRect,
                // agent tag persists (arms the waiting/approval watch after a reload); cmd deliberately does NOT, so it can't re-fire
-               tabs:s.tabs.map((t)=>({name:t.name,cwd:t.cwd||"",agent:!!t.agent}))};}).filter(Boolean)};
+               tabs:s.tabs.map((t)=>({id:t.id,name:t.name,cwd:t.cwd||"",agent:!!t.agent}))};}).filter(Boolean)};
     localStorage.setItem(STORE,JSON.stringify(data));
   }catch{}
 }
