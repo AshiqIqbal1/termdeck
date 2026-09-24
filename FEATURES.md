@@ -120,7 +120,7 @@ Legend: 🖥️ frontend (`public/index.html`) · 🔌 backend (`server.js`)
   preset…*) — label + command, stored per-browser in `localStorage` (`td.aicli.v1`), with per-row edit ✎
   / delete 🗑 (built-ins are fixed). Launches via the run-command-on-start path (same as SSH), spawning in
   the active project root; on agent exit you drop back to the local shell. Tabs launched this way are
-  tagged as *agent* tabs, which arms the waiting watch below.
+  tagged as *agent* tabs (persisted across page reloads), which arms the waiting watch below.
 - 🖥️ **Agent worktrees — one isolated checkout per task** (palette → *New agent task…*). Three agents
   loose in one repo overwrite each other, so a task gets its own `git worktree`: pick a **branch name**,
   an **AI CLI preset**, and an optional **prompt**, and the backend cuts a worktree off the project's repo
